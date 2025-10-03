@@ -40,7 +40,7 @@ test = "pytest . --cov=web_base -vv -s -x"
 post_test = "coverage html"
 
 [tool.towncrier]
-package = "web-base"
+package = "web_base"
 package_dir = "."
 filename = "CHANGELOG.md"
 directory = "changelogs.d"
