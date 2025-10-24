@@ -33,6 +33,7 @@ class WebBase:
         hidden=False,
         browser='Chrome',
         grid_url=None,
+        timeout: float = 30
     ):
         self.download_path = download_path
         self.anonimus = anonimus
@@ -40,13 +41,15 @@ class WebBase:
         self.status = False
         self.browser = browser
         self.grid_url = grid_url
+        self.timeout = timeout
 
     def start_driver(self) -> None:
         logger.debug(f'Configurando {self.browser}')
 
         if self.browser == 'Chrome':
             options = ChromeOptions()
-            options.headless = self.hidden
+            if self.hidden:
+                options.add_argument('--headless=new')
             options.add_argument('--start-maximized')
             options.add_argument('--disable-infobars')
             options.add_argument('--disable-dev-shm-usage')
@@ -61,7 +64,8 @@ class WebBase:
         elif self.browser == 'Edge':
             options = EdgeOptions()
             options.use_chromium = True
-            options.headless = self.hidden
+            if self.hidden:
+                options.add_argument('--headless=new')
             options.add_argument('--start-maximized')
             capabilities = DesiredCapabilities.EDGE.copy()
 
@@ -114,6 +118,7 @@ class WebBase:
         """Fecha o driver."""
         try:
             self.driver.quit()
+            self.driver = None
             return True
         except Exception:
             return False
@@ -161,7 +166,7 @@ class WebBase:
         by: By,
         element: str,
         text: str = None,
-        timeout: float = 3,
+        timeout: float = None,
         clear: bool = False,
     ) -> bool:
         """Aguarda que o elemento possua algum valor interno.
@@ -182,6 +187,8 @@ class WebBase:
         bool
             True se o elemento possue o text e False se não possui.
         """
+        if not timeout:
+            timeout = self.timeout        
         timeout = time() + timeout
         while True:
             if time() > timeout:
@@ -197,7 +204,7 @@ class WebBase:
                 return True
         return False
 
-    def wait(self, by: By, element: str, present=True, timeout=15) -> bool:
+    def wait(self, by: By, element: str, present=True, timeout=None) -> bool:
         """Aguarda um elemento estar ou não presente na página.
 
         Parameters
@@ -219,6 +226,8 @@ class WebBase:
             False = Caso present seja True e o elemento não está presente.
             False = Caso present seja False e o elemento está presente
         """
+        if not timeout:
+            timeout = self.timeout
         timeout = time() + timeout
         while True:
             if time() > timeout:
@@ -237,7 +246,7 @@ class WebBase:
         return False
 
     def wait_clickable(
-        self, by: By, element: str, clickable=True, timeout=15
+        self, by: By, element: str, clickable=True, timeout=None
     ) -> bool:
         """Aguarda um elemento estar ou não presente na página.
 
@@ -260,6 +269,10 @@ class WebBase:
             False = Caso clickable seja True e o elemento não é clicavel.
             False = Caso clickable seja False e o elemento é clicavel.
         """
+        if not timeout:
+            timeout = self.timeout        
+        if not timeout:
+            timeout = self.timeout        
         timeout = time() + timeout
         while True:
             if time() > timeout:
@@ -277,7 +290,7 @@ class WebBase:
                 return True
         return False
 
-    def click_js(self, by: By, element: str, timeout=2) -> bool:
+    def click_js(self, by: By, element: str, wait_clickable: bool = False, timeout=None) -> bool:
         """Clica em um elemento atravez do javascript.
 
         Parameters
@@ -294,7 +307,11 @@ class WebBase:
         bool
             tempo limite de aguardo para elemento ser ou não clicavel
         """
-        self.wait_clickable(by, element, timeout=timeout)
+
+        if wait_clickable:
+            if not timeout:
+                timeout = self.timeout
+            self.wait_clickable(by, element, timeout=timeout)
 
         try:
             if by == 'id':
@@ -334,7 +351,7 @@ class WebBase:
         by: By,
         element: str,
         value: str = '',
-        timeout: float = 2,
+        timeout: float = None,
         max_try: int = 3,
     ) -> bool:
         """Passa o value em um elemento atravez do javascript.
@@ -358,6 +375,8 @@ class WebBase:
             True se elemento contem o valor passado.
             False se não contem.
         """
+        if not timeout:
+            timeout = self.timeout        
         self.wait(by, element, timeout=timeout)
 
         if by == 'id':
@@ -421,8 +440,10 @@ class WebBase:
         return False
 
     def wait_list_elements(
-        self, elements: list[ElementsPressents], timeout: float = 30
+        self, elements: list[ElementsPressents], timeout: float = None
     ) -> None:
+        if not timeout:
+            timeout = self.timeout        
         timeout = time() + timeout
 
         while True:

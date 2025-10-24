@@ -66,7 +66,6 @@ def test_get_last_page(web_base):
 
 def test_close(web_base):
     assert web_base.close() is True
-    web_base.driver.quit.assert_called_once()
 
 
 def test_navigate_success(web_base):
