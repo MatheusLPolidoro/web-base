@@ -1,3 +1,14 @@
+Versão 0.1.1 (2025-10-24)
+
+# :zap: NOVAS FUNCIONALIDADES
+
+- Adicione tempo limite padrão em criação de instancia da classe WebBase.
+
+# :bug: CORREÇÕES
+
+- Corrija close com segurança mesmo para maquinas lentas.
+
+
 Versão 0.1.0 (2025-10-03)
 
 # :zap: NOVAS FUNCIONALIDADES
