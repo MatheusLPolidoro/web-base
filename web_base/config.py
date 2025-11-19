@@ -5,8 +5,8 @@ from time import sleep, time
 from selenium import webdriver
 from selenium.common.exceptions import (
     TimeoutException,
+    UnexpectedAlertPresentException,
     WebDriverException,
-    UnexpectedAlertPresentException
 )
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.common.by import By
@@ -33,8 +33,8 @@ class WebBase:
         hidden=False,
         browser='Chrome',
         grid_url=None,
-        timeout: float = 30
-    ):
+        timeout: float = 30,
+    ):  # PLR0913
         self.download_path = download_path
         self.anonimus = anonimus
         self.hidden = hidden
@@ -174,128 +174,127 @@ class WebBase:
         timeout: float = None,
         clear: bool = False,
     ) -> bool:
-        """Aguarda que o elemento possua algum valor interno.
+        """
+        Aguarda que o elemento possua algum valor interno.
 
         Parameters
         ----------
         by : By
-            By selenium
+            Tipo de seletor do Selenium (ex.: By.XPATH, By.ID).
         element : str
-            Elemento em sí.
+            Seletor do elemento.
         text : str, optional
-            Texto para validação se contem ou não html, by default None
+            Texto para validação se contém ou não HTML, by default None.
         timeout : float, optional
-            Tempo limite de aguardo, by default 3
+            Tempo limite em segundos, by default self.timeout.
+        clear : bool, optional
+            Se True, aguarda o campo estar vazio. Se False, aguarda estar preenchido.
 
         Returns
         -------
         bool
-            True se o elemento possue o text e False se não possui.
+            True se a condição foi satisfeita dentro do timeout, False caso contrário.
         """
-        if not timeout:
-            timeout = self.timeout        
-        timeout = time() + timeout
-        while True:
-            if time() > timeout:
-                break
-            html = self.driver.find_element(by, element).get_attribute('value')
-            if text is not None:
-                pattern = re.compile('.*?' + re.escape(text) + '.*?')
-                if re.search(pattern, html):
-                    return True
-            elif not clear and html:
-                return True
-            elif clear and not html:
-                return True
-        return False
+        if timeout is None:
+            timeout = getattr(self, 'timeout', 30)
 
-    def wait(self, by: By, element: str, present=True, timeout=None) -> bool:
-        """Aguarda um elemento estar ou não presente na página.
+        try:
+
+            def condition(driver):
+                html = driver.find_element(by, element).get_attribute('value')
+                if text is not None:
+                    return re.search(re.escape(text), html or '') is not None
+                elif clear:
+                    return not html
+                else:
+                    return bool(html)
+
+            WebDriverWait(self.driver, timeout).until(condition)
+            return True
+        except TimeoutException:
+            return False
+
+    def wait(
+        self, by: By, element: str, present: bool = True, timeout: int = None
+    ) -> bool:
+        """
+        Aguarda um elemento estar ou não presente na página.
 
         Parameters
         ----------
         by : By
-            By selenium
+            Tipo de seletor do Selenium (ex.: By.XPATH, By.ID).
         element : str
-            Elemento em sí.
+            Seletor do elemento.
         present : bool, optional
-            Se aguardando o elemento está ou não na página, by default True
+            Se True, aguarda o elemento aparecer. Se False, aguarda o elemento desaparecer.
         timeout : int, optional
-            tempo limite para elemento estar ou não presente, by default 30
+            Tempo limite em segundos. Se não informado, usa self.timeout.
 
         Returns
         -------
         bool
-            True = Caso present seja True e o elemento está presente.
-            True = Caso present seja False e o elemento não está presente.
-            False = Caso present seja True e o elemento não está presente.
-            False = Caso present seja False e o elemento está presente
+            True se a condição foi satisfeita dentro do timeout.
+            False caso contrário.
         """
-        if not timeout:
-            timeout = self.timeout
-        timeout = time() + timeout
-        while True:
-            if time() > timeout:
-                break
+        if timeout is None:
+            timeout = getattr(self, 'timeout', 30)
 
-            try:
-                WebDriverWait(self.driver, 0.3).until(
+        try:
+            if present:
+                WebDriverWait(self.driver, timeout).until(
                     EC.presence_of_element_located((by, element))
                 )
-                if present:
-                    return True
-            except (TimeoutException, UnexpectedAlertPresentException):
-                if present:
-                    continue
-                return True
-        return False
+            else:
+                WebDriverWait(self.driver, timeout).until_not(
+                    EC.presence_of_element_located((by, element))
+                )
+            return True
+        except (TimeoutException, UnexpectedAlertPresentException):
+            return False
 
     def wait_clickable(
-        self, by: By, element: str, clickable=True, timeout=None
+        self, by: By, element: str, clickable: bool = True, timeout: int = None
     ) -> bool:
-        """Aguarda um elemento estar ou não presente na página.
+        """
+        Aguarda um elemento ser ou não clicável na página.
 
         Parameters
         ----------
         by : By
-            By selenium
+            Tipo de seletor do Selenium (ex.: By.XPATH, By.ID).
         element : str
-            Elemento em sí.
+            Seletor do elemento.
         clickable : bool, optional
-            Se aguarda o elemento ser clicavel ou não, by default True
+            Se True, aguarda o elemento ser clicável. Se False, aguarda não ser clicável.
         timeout : int, optional
-            tempo limite para elemento ser ou não clicavel, by default 30
+            Tempo limite em segundos. Se não informado, usa self.timeout.
 
         Returns
         -------
         bool
-            True = Caso clickable seja True e o elemento é clivavel.
-            True = Caso clicable seja False e o elemento não é clicavel.
-            False = Caso clickable seja True e o elemento não é clicavel.
-            False = Caso clickable seja False e o elemento é clicavel.
+            True se a condição foi satisfeita dentro do timeout.
+            False caso contrário.
         """
-        if not timeout:
-            timeout = self.timeout        
-        if not timeout:
-            timeout = self.timeout        
-        timeout = time() + timeout
-        while True:
-            if time() > timeout:
-                break
+        if timeout is None:
+            timeout = getattr(self, 'timeout', 30)
 
-            try:
-                WebDriverWait(self.driver, 0.3).until(
+        try:
+            if clickable:
+                WebDriverWait(self.driver, timeout).until(
                     EC.element_to_be_clickable((by, element))
                 )
-                if clickable:
-                    return True
-            except TimeoutException:
-                if clickable:
-                    continue
-                return True
-        return False
+            else:
+                WebDriverWait(self.driver, timeout).until_not(
+                    EC.element_to_be_clickable((by, element))
+                )
+            return True
+        except TimeoutException:
+            return False
 
-    def click_js(self, by: By, element: str, wait_clickable: bool = False, timeout=None) -> bool:
+    def click_js(
+        self, by: By, element: str, wait_clickable: bool = False, timeout=None
+    ) -> bool:
         """Clica em um elemento atravez do javascript.
 
         Parameters
@@ -381,7 +380,7 @@ class WebBase:
             False se não contem.
         """
         if not timeout:
-            timeout = self.timeout        
+            timeout = self.timeout
         self.wait(by, element, timeout=timeout)
 
         if by == 'id':
@@ -448,7 +447,7 @@ class WebBase:
         self, elements: list[ElementsPressents], timeout: float = None
     ) -> None:
         if not timeout:
-            timeout = self.timeout        
+            timeout = self.timeout
         timeout = time() + timeout
 
         while True:
