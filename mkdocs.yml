@@ -1,11 +1,6 @@
 site_name: Web Base
 nav:
   - Docs: index.md
-  # - O que é Web Base: sobre.md
-  # - Primeiros passos:
-  #     - Introdução: primeiros_passos.md
-  #     - Instalação: instalacao.md
-  #     - Tutorial: tutorial.md
   - Alterações: changelog.md
   - Estrutura: estrutura.md
 

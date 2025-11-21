@@ -1,3 +1,10 @@
+Versão 0.1.3 (2025-11-21)
+
+# :bug: CORREÇÕES
+
+- Altere funções wait para aguardar sem loop nas funções.
+
+
 Versão 0.1.1 (2025-10-24)
 
 # :zap: NOVAS FUNCIONALIDADES
