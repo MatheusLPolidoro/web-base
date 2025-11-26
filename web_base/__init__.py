@@ -1,5 +1,5 @@
 from web_base.config import ElementsPressents, WebBase
 
 __author__ = 'MatheusLPolidoro'
-__version__ = '0.1.3'
+__version__ = '0.1.4'
 __all__ = ['WebBase', 'ElementsPressents']

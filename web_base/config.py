@@ -1,4 +1,5 @@
 import re
+import os, sys
 from logging import Logger
 from time import sleep, time
 
@@ -15,6 +16,9 @@ from selenium.webdriver.edge.options import Options as EdgeOptions
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+
+sys.stdout = open(os.devnull, "w")
+sys.stderr = open(os.devnull, "w")
 
 logger = Logger(__name__)
 
@@ -54,7 +58,12 @@ class WebBase:
             options.add_argument('--disable-infobars')
             options.add_argument('--disable-dev-shm-usage')
             options.add_argument('--no-sandbox')
+
+            options.add_argument("--log-level=3")
+            options.add_experimental_option("excludeSwitches", ["enable-logging"])
+
             capabilities = DesiredCapabilities.CHROME.copy()
+            capabilities["goog:loggingPrefs"] = {"browser": "OFF", "driver": "OFF"}
 
         elif self.browser == 'Firefox':
             options = FirefoxOptions()
@@ -64,14 +73,19 @@ class WebBase:
         elif self.browser == 'Edge':
             options = EdgeOptions()
             options.use_chromium = True
+
+            options.add_argument("--log-level=3")
+            options.add_experimental_option("excludeSwitches", ["enable-logging"])
+
+            capabilities = DesiredCapabilities.EDGE.copy()
+            capabilities["ms:loggingPrefs"] = {"browser": "OFF", "driver": "OFF"}
+
             if self.hidden:
                 options.add_argument('--headless=new')
                 options.add_argument('--disable-gpu')
                 options.add_argument('--no-sandbox')
                 options.add_argument('--disable-dev-shm-usage')
                 options.add_argument('--window-size=1920,1080')
-            capabilities = DesiredCapabilities.EDGE.copy()
-
         else:
             logger.error('Browser não suportado')
             raise ValueError('Browser não suportado')
