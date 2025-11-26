@@ -1,5 +1,6 @@
+import os
 import re
-import os, sys
+import sys
 from logging import Logger
 from time import sleep, time
 
@@ -10,15 +11,19 @@ from selenium.common.exceptions import (
     WebDriverException,
 )
 from selenium.webdriver.chrome.options import Options as ChromeOptions
+from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 from selenium.webdriver.edge.options import Options as EdgeOptions
+from selenium.webdriver.edge.service import Service as EdgeService
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
+from selenium.webdriver.firefox.service import Service as FirefoxService
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
-sys.stdout = open(os.devnull, "w")
-sys.stderr = open(os.devnull, "w")
+# Redireciona stdout/stderr do processo Python
+sys.stdout = open(os.devnull, 'w', encoding='utf-8')
+sys.stderr = open(os.devnull, 'w', encoding='utf-8')
 
 logger = Logger(__name__)
 
@@ -38,7 +43,7 @@ class WebBase:
         browser='Chrome',
         grid_url=None,
         timeout: float = 30,
-    ):  # PLR0913
+    ):
         self.download_path = download_path
         self.anonimus = anonimus
         self.hidden = hidden
@@ -59,26 +64,49 @@ class WebBase:
             options.add_argument('--disable-dev-shm-usage')
             options.add_argument('--no-sandbox')
 
-            options.add_argument("--log-level=3")
-            options.add_experimental_option("excludeSwitches", ["enable-logging"])
+            options.add_argument("--disable-logging")
+            options.add_argument("--disable-crash-reporter")
+            options.add_argument("--disable-breakpad")
+            options.add_argument("--disable-component-update")
+            options.add_argument("--disable-background-networking")
+            options.add_argument('--log-level=3')
+            options.add_experimental_option(
+                'excludeSwitches', ['enable-logging']
+            )
 
             capabilities = DesiredCapabilities.CHROME.copy()
-            capabilities["goog:loggingPrefs"] = {"browser": "OFF", "driver": "OFF"}
+            capabilities['goog:loggingPrefs'] = {
+                'browser': 'OFF',
+                'driver': 'OFF',
+            }
+
+            service = ChromeService(log_path=os.devnull)
 
         elif self.browser == 'Firefox':
             options = FirefoxOptions()
             options.headless = self.hidden
             capabilities = DesiredCapabilities.FIREFOX.copy()
 
+            service = FirefoxService(log_output=os.devnull)
+
         elif self.browser == 'Edge':
             options = EdgeOptions()
             options.use_chromium = True
-
-            options.add_argument("--log-level=3")
-            options.add_experimental_option("excludeSwitches", ["enable-logging"])
+            options.add_argument("--disable-logging")
+            options.add_argument("--disable-crash-reporter")
+            options.add_argument("--disable-breakpad")
+            options.add_argument("--disable-component-update")
+            options.add_argument("--disable-background-networking")
+            options.add_argument('--log-level=3')
+            options.add_experimental_option(
+                'excludeSwitches', ['enable-logging']
+            )
 
             capabilities = DesiredCapabilities.EDGE.copy()
-            capabilities["ms:loggingPrefs"] = {"browser": "OFF", "driver": "OFF"}
+            capabilities['ms:loggingPrefs'] = {
+                'browser': 'OFF',
+                'driver': 'OFF',
+            }
 
             if self.hidden:
                 options.add_argument('--headless=new')
@@ -86,6 +114,9 @@ class WebBase:
                 options.add_argument('--no-sandbox')
                 options.add_argument('--disable-dev-shm-usage')
                 options.add_argument('--window-size=1920,1080')
+
+            service = EdgeService(log_path=os.devnull)
+
         else:
             logger.error('Browser não suportado')
             raise ValueError('Browser não suportado')
@@ -98,11 +129,15 @@ class WebBase:
                     options=options,
                 )
             elif self.browser == 'Chrome':
-                self.driver = webdriver.Chrome(options=options)
+                self.driver = webdriver.Chrome(
+                    options=options, service=service
+                )
             elif self.browser == 'Firefox':
-                self.driver = webdriver.Firefox(options=options)
+                self.driver = webdriver.Firefox(
+                    options=options, service=service
+                )
             elif self.browser == 'Edge':
-                self.driver = webdriver.Edge(options=options)
+                self.driver = webdriver.Edge(options=options, service=service)
 
             if not self.hidden:
                 self.driver.maximize_window()
